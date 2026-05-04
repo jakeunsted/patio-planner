@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Patio Planner</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;1,500&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:#141210;
+  --panel:#1c1916;
+  --panel2:#222019;
+  --border:#2e2a22;
+  --border2:#3a3428;
+  --text:#e4d8c0;
+  --text2:#8a7a60;
+  --text3:#5a4e38;
+  --accent:#c9a455;
+  --accent2:#a07830;
+  --green:#6b9e5e;
+  --red:#b85c4a;
+  --grout:#3d3426;
+  --radius:4px;
+}
+
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:13px;min-height:100vh;display:flex;flex-direction:column}
+
+/* ── LAYOUT ── */
+.app{display:grid;grid-template-columns:320px 1fr;min-height:100vh}
+@media(max-width:900px){.app{grid-template-columns:1fr;grid-template-rows:auto 1fr}}
+
+/* ── SIDEBAR ── */
+.sidebar{background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;height:100vh;position:sticky;top:0}
+@media(max-width:900px){.sidebar{height:auto;position:static;border-right:none;border-bottom:1px solid var(--border)}}
+
+.sidebar-header{padding:1.5rem 1.25rem 1rem;border-bottom:1px solid var(--border)}
+.sidebar-header h1{font-family:'Playfair Display',serif;font-size:1.35rem;color:var(--accent);line-height:1.2}
+.sidebar-header p{color:var(--text3);font-size:0.7rem;letter-spacing:.12em;text-transform:uppercase;margin-top:.3rem}
+
+.section{padding:1rem 1.25rem;border-bottom:1px solid var(--border)}
+.section-title{font-size:.65rem;letter-spacing:.18em;text-transform:uppercase;color:var(--text3);margin-bottom:.75rem;display:flex;align-items:center;gap:.5rem}
+.section-title::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* Area & Grout */
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:.5rem}
+.field{display:flex;flex-direction:column;gap:.3rem}
+.field label{font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text2)}
+.field input{background:var(--bg);border:1px solid var(--border2);color:var(--text);font-family:inherit;font-size:.8rem;padding:.5rem .6rem;width:100%;transition:border-color .15s}
+.field input:focus{outline:none;border-color:var(--accent)}
+.field input.error{border-color:var(--red)}
+.field-hint{font-size:.6rem;color:var(--text3);margin-top:.2rem}
+.field-error{font-size:.6rem;color:var(--red);margin-top:.2rem;display:none}
+.field input.error ~ .field-error{display:block}
+
+/* Slab table */
+.slab-list{display:flex;flex-direction:column;gap:.4rem}
+.slab-row{display:grid;grid-template-columns:1fr 1fr 48px 28px;gap:.35rem;align-items:center}
+.slab-row input{background:var(--bg);border:1px solid var(--border2);color:var(--text);font-family:inherit;font-size:.75rem;padding:.4rem .5rem;width:100%;transition:border-color .15s}
+.slab-row input:focus{outline:none;border-color:var(--accent)}
+.slab-row input.error{border-color:var(--red)}
+.slab-row-header{display:grid;grid-template-columns:1fr 1fr 48px 28px;gap:.35rem;margin-bottom:.2rem}
+.slab-row-header span{font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);padding:0 .5rem}
+
+.btn-icon{width:28px;height:28px;background:transparent;border:1px solid var(--border2);color:var(--text3);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .15s;flex-shrink:0}
+.btn-icon:hover{border-color:var(--red);color:var(--red)}
+.btn-add{width:100%;margin-top:.6rem;background:transparent;border:1px dashed var(--border2);color:var(--text2);font-family:inherit;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;padding:.5rem;cursor:pointer;transition:all .15s}
+.btn-add:hover{border-color:var(--accent);color:var(--accent)}
+
+/* Buttons */
+.btn{font-family:inherit;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;padding:.6rem 1rem;border:1px solid;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:.4rem}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+.btn-primary:hover{background:var(--accent2);border-color:var(--accent2)}
+.btn-outline{background:transparent;border-color:var(--border2);color:var(--text2)}
+.btn-outline:hover{border-color:var(--accent);color:var(--accent)}
+.btn-green{background:transparent;border-color:var(--green);color:var(--green)}
+.btn-green:hover{background:var(--green);color:var(--bg)}
+.btn:disabled{opacity:.35;pointer-events:none}
+
+.action-row{display:flex;gap:.5rem;flex-wrap:wrap;padding:1rem 1.25rem}
+
+/* Saved patterns */
+.saved-list{display:flex;flex-direction:column;gap:.35rem}
+.saved-item{display:flex;align-items:center;gap:.4rem;padding:.45rem .6rem;background:var(--bg);border:1px solid var(--border);cursor:pointer;transition:all .15s}
+.saved-item:hover{border-color:var(--accent2)}
+.saved-item.active{border-color:var(--accent);background:var(--panel2)}
+.saved-name{flex:1;font-size:.75rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.saved-meta{font-size:.6rem;color:var(--text3)}
+.saved-del{background:none;border:none;color:var(--text3);cursor:pointer;font-size:12px;padding:2px 4px;transition:color .15s;flex-shrink:0}
+.saved-del:hover{color:var(--red)}
+.empty-saves{font-size:.7rem;color:var(--text3);font-style:italic;padding:.3rem 0}
+
+/* ── MAIN ── */
+.main{display:flex;flex-direction:column;overflow:hidden}
+
+.toolbar{display:flex;align-items:center;gap:.75rem;padding:.75rem 1.25rem;border-bottom:1px solid var(--border);background:var(--panel);flex-wrap:wrap}
+.toolbar-title{font-family:'Playfair Display',serif;font-size:.95rem;color:var(--text2);flex:1}
+.badge{font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;padding:.25rem .5rem;background:var(--panel2);border:1px solid var(--border2);color:var(--text3)}
+
+.canvas-outer{flex:1;overflow:auto;padding:1.5rem;display:flex;align-items:flex-start;justify-content:center;background:var(--bg)}
+.canvas-wrap{position:relative;box-shadow:0 8px 40px rgba(0,0,0,.7)}
+canvas{display:block}
+
+.stats-bar{display:flex;gap:1.5rem;padding:.65rem 1.25rem;background:var(--panel);border-top:1px solid var(--border);flex-wrap:wrap}
+.stat{display:flex;flex-direction:column;gap:.15rem}
+.stat-label{font-size:.58rem;letter-spacing:.12em;text-transform:uppercase;color:var(--text3)}
+.stat-val{font-size:.85rem;color:var(--accent)}
+
+/* Toast */
+.toast{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--panel2);border:1px solid var(--border2);color:var(--text);font-family:inherit;font-size:.75rem;padding:.65rem 1rem;box-shadow:0 4px 20px rgba(0,0,0,.5);z-index:999;transform:translateY(8px);opacity:0;transition:all .25s;pointer-events:none;max-width:260px}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.success{border-color:var(--green);color:var(--green)}
+.toast.error{border-color:var(--red);color:var(--red)}
+
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;display:flex;align-items:center;justify-content:center;padding:1rem;opacity:0;pointer-events:none;transition:opacity .2s}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal{background:var(--panel);border:1px solid var(--border2);padding:1.5rem;width:100%;max-width:320px}
+.modal h3{font-family:'Playfair Display',serif;color:var(--accent);margin-bottom:1rem}
+.modal input{background:var(--bg);border:1px solid var(--border2);color:var(--text);font-family:inherit;font-size:.85rem;padding:.55rem .7rem;width:100%;margin-bottom:.75rem}
+.modal input:focus{outline:none;border-color:var(--accent)}
+.modal-btns{display:flex;gap:.5rem;justify-content:flex-end}
+
+/* Warning banner */
+.warning{background:rgba(184,92,74,.08);border:1px solid rgba(184,92,74,.3);color:#c97a6a;font-size:.7rem;padding:.6rem .85rem;margin:0 1.25rem .75rem;line-height:1.5;display:none}
+.warning.show{display:block}
+
+/* Variety slider */
+.slider-wrap{display:flex;flex-direction:column;gap:.5rem}
+.slider-labels{display:flex;justify-content:space-between;font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text3)}
+.slider-track{position:relative;height:28px;display:flex;align-items:center}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:3px;background:linear-gradient(to right, var(--accent) 0%, var(--accent) var(--pct,50%), var(--border2) var(--pct,50%), var(--border2) 100%);outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--accent);border:2px solid var(--bg);box-shadow:0 0 0 1px var(--accent);transition:transform .15s}
+input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--accent);border:2px solid var(--bg);box-shadow:0 0 0 1px var(--accent);cursor:pointer}
+input[type=range]:hover::-webkit-slider-thumb{transform:scale(1.2)}
+.slider-val{text-align:center;font-size:.75rem;color:var(--accent);font-weight:500;letter-spacing:.05em}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ── SIDEBAR ── -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <h1>Patio Planner</h1>
+      <p>Indian Sandstone Layout Tool</p>
+    </div>
+
+    <!-- Area settings -->
+    <div class="section">
+      <div class="section-title">Area Size</div>
+      <div class="field-row">
+        <div class="field">
+          <label>Width (mm)</label>
+          <input type="number" id="areaW" value="3100" min="500" max="20000" step="100">
+          <div class="field-hint">e.g. 3000 = 3m</div>
+          <div class="field-error">Must be 500–20000mm</div>
+        </div>
+        <div class="field">
+          <label>Length (mm)</label>
+          <input type="number" id="areaH" value="3100" min="500" max="20000" step="100">
+          <div class="field-hint">e.g. 3000 = 3m</div>
+          <div class="field-error">Must be 500–20000mm</div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Grout Gap (mm)</label>
+        <input type="number" id="groutGap" value="10" min="2" max="50" step="1">
+        <div class="field-hint">Typical: 8–12mm pointing</div>
+        <div class="field-error">Must be 2–50mm</div>
+      </div>
+    </div>
+
+    <!-- Slab types -->
+    <div class="section">
+      <div class="section-title">Slab Types</div>
+      <div class="slab-row-header">
+        <span>W (mm)</span>
+        <span>H (mm)</span>
+        <span>Count</span>
+        <span></span>
+      </div>
+      <div class="slab-list" id="slabList"></div>
+      <div class="warning" id="slabWarning"></div>
+      <button class="btn-add" onclick="addSlabRow()">+ Add Slab Size</button>
+    </div>
+
+    <!-- Variety control -->
+    <div class="section">
+      <div class="section-title">Pattern Variety</div>
+      <div class="slider-wrap">
+        <div class="slider-labels">
+          <span>Clustered</span>
+          <span>Mixed</span>
+          <span>Scattered</span>
+        </div>
+        <div class="slider-track">
+          <input type="range" id="varietySlider" min="0" max="100" value="50"
+            oninput="updateSliderUI(this)" style="--pct:50%">
+        </div>
+        <div class="slider-val" id="varietyVal">Balanced</div>
+      </div>
+      <div class="field-hint" style="margin-top:.5rem">Controls how much the same slab type avoids appearing next to itself.</div>
+    </div>
+
+    <!-- Actions -->
+    <div class="action-row">
+      <button class="btn btn-primary" onclick="generatePattern()">↺ Generate</button>
+      <button class="btn btn-green" id="btnSave" onclick="openSaveModal()" disabled>Save Pattern</button>
+    </div>
+
+    <!-- Saved patterns -->
+    <div class="section" style="flex:1">
+      <div class="section-title">Saved Patterns</div>
+      <div class="saved-list" id="savedList"></div>
+    </div>
+  </aside>
+
+  <!-- ── MAIN ── -->
+  <main class="main">
+    <div class="toolbar">
+      <div class="toolbar-title" id="toolbarTitle">Configure slabs and generate a layout →</div>
+      <span class="badge" id="badgeArea">—</span>
+      <button class="btn btn-outline" id="btnExport" onclick="exportPNG()" disabled>Export PNG</button>
+    </div>
+
+    <div class="canvas-outer">
+      <div class="canvas-wrap" id="canvasWrap">
+        <canvas id="c"></canvas>
+      </div>
+    </div>
+
+    <div class="stats-bar" id="statsBar">
+      <div class="stat"><div class="stat-label">Area</div><div class="stat-val" id="stArea">—</div></div>
+      <div class="stat"><div class="stat-label">Total Slabs</div><div class="stat-val" id="stTotal">—</div></div>
+      <div class="stat"><div class="stat-label">Coverage</div><div class="stat-val" id="stCoverage">—</div></div>
+      <div class="stat"><div class="stat-label">Grout Gap</div><div class="stat-val" id="stGrout">—</div></div>
+    </div>
+  </main>
+</div>
+
+<!-- Save Modal -->
+<div class="modal-overlay" id="saveModal">
+  <div class="modal">
+    <h3>Save Pattern</h3>
+    <input type="text" id="saveNameInput" placeholder="e.g. Back garden v2" maxlength="40">
+    <div class="modal-btns">
+      <button class="btn btn-outline" onclick="closeSaveModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmSave()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── STATE ──────────────────────────────────────────────────────
+const STONE_COLORS = [
+  '#c9a96e','#b8894a','#d4b483','#a07840','#e2c99a',
+  '#bf9d6a','#cab47e','#c4a464','#d9bc8a','#a88848',
+  '#b09055','#cdb278','#c6aa72','#b89860','#d5c088',
+];
+
+let currentPlaced = null;
+let currentConfig = null;
+
+// ── SLAB ROWS ─────────────────────────────────────────────────
+const DEFAULT_SLABS = [
+  { w: 300, h: 300, count: 20 },
+  { w: 600, h: 600, count: 15 },
+  { w: 600, h: 300, count: 20 },
+  { w: 900, h: 600, count: 10 },
+];
+
+function initSlabs() {
+  const list = document.getElementById('slabList');
+  list.innerHTML = '';
+  DEFAULT_SLABS.forEach(s => addSlabRow(s.w, s.h, s.count));
+}
+
+let slabIdCounter = 0;
+function addSlabRow(w='', h='', count='∞') {
+  const id = slabIdCounter++;
+  const list = document.getElementById('slabList');
+  const row = document.createElement('div');
+  row.className = 'slab-row';
+  row.dataset.id = id;
+  row.innerHTML = `
+    <input type="number" class="sl-w" placeholder="e.g. 600" value="${w}" min="50" max="3000" step="50" onchange="validateSlabRow(this)" oninput="validateSlabRow(this)">
+    <input type="number" class="sl-h" placeholder="e.g. 300" value="${h}" min="50" max="3000" step="50" onchange="validateSlabRow(this)" oninput="validateSlabRow(this)">
+    <input type="text" class="sl-c" placeholder="∞" value="${count}" title="Leave blank or ∞ for unlimited">
+    <button class="btn-icon" onclick="removeSlabRow(${id})" title="Remove">×</button>
+  `;
+  list.appendChild(row);
+}
+
+function removeSlabRow(id) {
+  const row = document.querySelector(`.slab-row[data-id="${id}"]`);
+  if (row) row.remove();
+}
+
+function validateSlabRow(input) {
+  const val = parseFloat(input.value);
+  if (!input.value || isNaN(val) || val < 50 || val > 3000) {
+    input.classList.add('error');
+    return false;
+  }
+  input.classList.remove('error');
+  return true;
+}
+
+function getSlabs() {
+  const rows = document.querySelectorAll('.slab-row');
+  const slabs = [];
+  let valid = true;
+  rows.forEach(row => {
+    const wi = row.querySelector('.sl-w');
+    const hi = row.querySelector('.sl-h');
+    const ci = row.querySelector('.sl-c');
+    const wv = validateSlabRow(wi);
+    const hv = validateSlabRow(hi);
+    if (!wv || !hv) { valid = false; return; }
+    const w = parseFloat(wi.value);
+    const h = parseFloat(hi.value);
+    const cval = ci.value.trim();
+    const count = (cval === '' || cval === '∞' || cval === 'inf') ? Infinity : parseInt(cval);
+    if (!isNaN(w) && !isNaN(h)) slabs.push({ w, h, count: isNaN(count) ? Infinity : Math.max(1, count) });
+  });
+  return valid ? slabs : null;
+}
+
+// ── AREA & GROUT VALIDATION ────────────────────────────────────
+function validateNumber(id, min, max) {
+  const el = document.getElementById(id);
+  const val = parseFloat(el.value);
+  if (isNaN(val) || val < min || val > max) {
+    el.classList.add('error');
+    return null;
+  }
+  el.classList.remove('error');
+  return val;
+}
+
+// ── VARIETY SLIDER ────────────────────────────────────────────
+function updateSliderUI(el) {
+  const v = parseInt(el.value);
+  el.style.setProperty('--pct', v + '%');
+  const labels = ['Full Clusters','Mostly Clustered','Slight Clustering','Balanced','Slight Mix','Mostly Mixed','Full Scatter'];
+  const idx = Math.round(v / 100 * (labels.length - 1));
+  document.getElementById('varietyVal').textContent = labels[idx];
+}
+
+// ── PATTERN GENERATION ────────────────────────────────────────
+function randColor() { return STONE_COLORS[Math.floor(Math.random() * STONE_COLORS.length)]; }
+
+function generatePattern() {
+  const areaW = validateNumber('areaW', 500, 20000);
+  const areaH = validateNumber('areaH', 500, 20000);
+  const grout = validateNumber('groutGap', 2, 50);
+  const slabs = getSlabs();
+  const variety = parseInt(document.getElementById('varietySlider').value); // 0=clustered, 100=scattered
+
+  if (areaW === null || areaH === null || grout === null) { showToast('Fix invalid area/grout values', 'error'); return; }
+  if (!slabs || slabs.length === 0) { showToast('Add at least one valid slab size', 'error'); return; }
+
+  // Find GCD base unit for grid
+  const allDims = slabs.flatMap(s => [s.w, s.h]);
+  const base = allDims.reduce(gcd);
+
+  const COLS = Math.floor(areaW / base);
+  const ROWS = Math.floor(areaH / base);
+
+  if (COLS > 200 || ROWS > 200) { showToast('Area too large for base unit — try larger slabs or smaller area', 'error'); return; }
+
+  const grid = Array.from({ length: ROWS }, () => new Uint8Array(COLS));
+  const placed = [];
+  const remaining = slabs.map(s => ({ ...s }));
+
+  // Build slab defs from input (with rotation)
+  const slabDefs = [];
+  slabs.forEach((s, idx) => {
+    const cw = s.w / base, ch = s.h / base;
+    slabDefs.push({ cw, ch, idx });
+    if (cw !== ch) slabDefs.push({ cw: ch, ch: cw, idx }); // rotated
+  });
+
+  // Track placed index per grid cell for neighbour lookups
+  const gridIdx = Array.from({ length: ROWS }, () => new Int16Array(COLS).fill(-1));
+
+  function canPlace(r, c, rh, cw) {
+    if (r + rh > ROWS || c + cw > COLS) return false;
+    for (let rr = r; rr < r + rh; rr++)
+      for (let cc = c; cc < c + cw; cc++)
+        if (grid[rr][cc]) return false;
+    return true;
+  }
+
+  function markGrid(r, c, rh, cw, slabIdx) {
+    for (let rr = r; rr < r + rh; rr++)
+      for (let cc = c; cc < c + cw; cc++) {
+        grid[rr][cc] = 1;
+        gridIdx[rr][cc] = slabIdx;
+      }
+  }
+
+  // Get the set of slab type indices neighbouring a candidate placement
+  function neighbourTypes(r, c, rh, cw) {
+    const types = new Set();
+    // Top edge
+    if (r > 0) for (let cc = c; cc < c + cw; cc++) { const t = gridIdx[r-1][cc]; if (t >= 0) types.add(t); }
+    // Bottom edge
+    if (r + rh < ROWS) for (let cc = c; cc < c + cw; cc++) { const t = gridIdx[r+rh][cc]; if (t >= 0) types.add(t); }
+    // Left edge
+    if (c > 0) for (let rr = r; rr < r + rh; rr++) { const t = gridIdx[rr][c-1]; if (t >= 0) types.add(t); }
+    // Right edge
+    if (c + cw < COLS) for (let rr = r; rr < r + rh; rr++) { const t = gridIdx[rr][c+cw]; if (t >= 0) types.add(t); }
+    return types;
+  }
+
+  function getAvailableDefs(r, c) {
+    return slabDefs.filter(def => {
+      if (remaining[def.idx].count <= 0) return false;
+      return canPlace(r, c, def.ch, def.cw);
+    });
+  }
+
+  // variety: 0 = clustered (same type preferred), 100 = scattered (different types preferred)
+  // penaltyStrength: how aggressively to penalise matching neighbours
+  const penaltyStrength = (variety / 100); // 0..1
+
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      if (grid[r][c]) continue;
+      const avail = getAvailableDefs(r, c);
+      if (avail.length === 0) {
+        const smallest = slabDefs.find(d => canPlace(r, c, d.ch, d.cw));
+        if (smallest) {
+          markGrid(r, c, smallest.ch, smallest.cw, smallest.idx);
+          placed.push({ r, c, rh: smallest.ch, cw: smallest.cw, idx: smallest.idx, color: randColor() });
+        } else {
+          grid[r][c] = 1; gridIdx[r][c] = 0;
+          placed.push({ r, c, rh: 1, cw: 1, idx: 0, color: randColor() });
+        }
+        continue;
+      }
+
+      const nbTypes = neighbourTypes(r, c, 1, 1); // quick scan of immediate cell neighbours
+      const nbTypesLarge = avail.length > 0 ? neighbourTypes(r, c, avail[0].ch, avail[0].cw) : nbTypes;
+
+      const weights = avail.map(d => {
+        // Base weight: favour larger slabs
+        let w = (d.cw * d.ch) * 1.5 + 1;
+        const nbFull = neighbourTypes(r, c, d.ch, d.cw);
+        const sameNeighbour = nbFull.has(d.idx);
+        if (sameNeighbour) {
+          // variety=0 → boost same-type (clustering); variety=100 → penalise same-type (scattering)
+          // At 50 (balanced): no modification
+          const factor = 1 + (0.5 - penaltyStrength) * 4; // range: 3x boost → 1x → -1x (penalise)
+          w *= Math.max(0.05, factor);
+        }
+        return Math.max(0.01, w);
+      });
+
+      const total = weights.reduce((a, b) => a + b, 0);
+      let rnd = Math.random() * total;
+      let chosen = avail[avail.length - 1];
+      for (let i = 0; i < avail.length; i++) { rnd -= weights[i]; if (rnd <= 0) { chosen = avail[i]; break; } }
+      markGrid(r, c, chosen.ch, chosen.cw, chosen.idx);
+      remaining[chosen.idx].count--;
+      placed.push({ r, c, rh: chosen.ch, cw: chosen.cw, idx: chosen.idx, color: randColor() });
+    }
+  }
+
+  currentConfig = { areaW, areaH, grout, variety, slabs, base, COLS, ROWS };
+  currentPlaced = placed;
+  drawPattern(placed, currentConfig);
+  updateStats(placed, currentConfig);
+  document.getElementById('btnSave').disabled = false;
+  document.getElementById('btnExport').disabled = false;
+  document.getElementById('toolbarTitle').textContent = `${(areaW/1000).toFixed(2)}m × ${(areaH/1000).toFixed(2)}m · ${placed.length} slabs`;
+  document.getElementById('badgeArea').textContent = `${grout}mm grout · variety ${variety}%`;
+
+  // Warn if any slab type ran out
+  const warn = document.getElementById('slabWarning');
+  const exhausted = remaining.filter((r, i) => slabs[i].count !== Infinity && r.count <= 0);
+  if (exhausted.length) {
+    warn.textContent = `⚠ Some slab types ran out and were skipped — increase counts or regenerate.`;
+    warn.classList.add('show');
+  } else {
+    warn.classList.remove('show');
+  }
+}
+
+// ── DRAWING ───────────────────────────────────────────────────
+const SCALE_TARGET = 600; // target canvas px on longest axis
+
+function drawPattern(placed, cfg) {
+  const { areaW, areaH, grout, base, COLS, ROWS } = cfg;
+  const scale = SCALE_TARGET / Math.max(areaW, areaH);
+  const cellPx = base * scale;
+  const groutPx = grout * scale;
+
+  const canvW = Math.round(COLS * cellPx + groutPx);
+  const canvH = Math.round(ROWS * cellPx + groutPx);
+
+  const canvas = document.getElementById('c');
+  canvas.width = canvW;
+  canvas.height = canvH;
+
+  // Responsive display size
+  const outer = document.querySelector('.canvas-outer');
+  const maxDisplay = Math.min(outer.clientWidth - 48, 700);
+  const dispScale = maxDisplay / canvW;
+  canvas.style.width = Math.round(canvW * dispScale) + 'px';
+  canvas.style.height = Math.round(canvH * dispScale) + 'px';
+
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#3d3426';
+  ctx.fillRect(0, 0, canvW, canvH);
+
+  placed.forEach(p => {
+    const x = groutPx / 2 + p.c * cellPx;
+    const y = groutPx / 2 + p.r * cellPx;
+    const w = p.cw * cellPx - groutPx;
+    const h = p.rh * cellPx - groutPx;
+
+    ctx.fillStyle = p.color;
+    ctx.fillRect(x, y, w, h);
+
+    // Grain lines
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(x, y, w, h);
+    ctx.clip();
+    for (let i = 0; i < Math.ceil(w * h / 800) + 6; i++) {
+      const gx = x + Math.random() * w;
+      const gy = y + Math.random() * h;
+      const gw = Math.random() * w * 0.65;
+      const gh = Math.random() * 1.8 + 0.4;
+      const alpha = Math.random() * 0.11;
+      ctx.fillStyle = Math.random() > 0.5 ? `rgba(255,240,200,${alpha})` : `rgba(70,40,10,${alpha})`;
+      ctx.fillRect(gx, gy, gw, gh);
+    }
+    ctx.restore();
+
+    // Face gradient
+    const grad = ctx.createLinearGradient(x, y, x, y + h);
+    grad.addColorStop(0, 'rgba(255,255,255,0.08)');
+    grad.addColorStop(0.35, 'rgba(255,255,255,0)');
+    grad.addColorStop(1, 'rgba(0,0,0,0.2)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(x, y, w, h);
+
+    // Highlight edge
+    ctx.fillStyle = 'rgba(255,255,255,0.07)';
+    ctx.fillRect(x, y, w, 1.5);
+    ctx.fillRect(x, y, 1.5, h);
+  });
+}
+
+// ── STATS ─────────────────────────────────────────────────────
+function updateStats(placed, cfg) {
+  const { areaW, areaH, grout, slabs, base } = cfg;
+  const areaSqm = (areaW / 1000) * (areaH / 1000);
+  let slabArea = 0;
+  placed.forEach(p => {
+    slabArea += (p.cw * base / 1000) * (p.rh * base / 1000);
+  });
+  const coverage = Math.min(100, (slabArea / areaSqm * 100)).toFixed(1);
+
+  document.getElementById('stArea').textContent = `${areaSqm.toFixed(2)} m²`;
+  document.getElementById('stTotal').textContent = placed.length;
+  document.getElementById('stCoverage').textContent = `${coverage}%`;
+  document.getElementById('stGrout').textContent = `${grout}mm`;
+}
+
+// ── LOCAL STORAGE ─────────────────────────────────────────────
+function getSaved() {
+  try { return JSON.parse(localStorage.getItem('patioPatterns') || '[]'); }
+  catch { return []; }
+}
+function setSaved(arr) { localStorage.setItem('patioPatterns', JSON.stringify(arr)); }
+
+function renderSavedList() {
+  const list = document.getElementById('savedList');
+  const saved = getSaved();
+  if (!saved.length) {
+    list.innerHTML = '<div class="empty-saves">No saved patterns yet</div>';
+    return;
+  }
+  list.innerHTML = saved.map((p, i) => `
+    <div class="saved-item" onclick="loadPattern(${i})">
+      <div>
+        <div class="saved-name">${escHtml(p.name)}</div>
+        <div class="saved-meta">${p.meta}</div>
+      </div>
+      <button class="saved-del" onclick="deletePattern(event,${i})" title="Delete">×</button>
+    </div>
+  `).join('');
+}
+
+function openSaveModal() {
+  document.getElementById('saveNameInput').value = '';
+  document.getElementById('saveModal').classList.add('open');
+  setTimeout(() => document.getElementById('saveNameInput').focus(), 100);
+}
+function closeSaveModal() { document.getElementById('saveModal').classList.remove('open'); }
+
+document.getElementById('saveModal').addEventListener('click', e => { if (e.target === e.currentTarget) closeSaveModal(); });
+document.getElementById('saveNameInput').addEventListener('keydown', e => { if (e.key === 'Enter') confirmSave(); });
+
+function confirmSave() {
+  if (!currentPlaced || !currentConfig) return;
+  const name = document.getElementById('saveNameInput').value.trim();
+  if (!name) { showToast('Enter a name', 'error'); return; }
+  const { areaW, areaH, grout } = currentConfig;
+  const saved = getSaved();
+  saved.unshift({
+    name,
+    meta: `${(areaW/1000).toFixed(1)}×${(areaH/1000).toFixed(1)}m · ${currentPlaced.length} slabs · ${grout}mm grout`,
+    config: currentConfig,
+    placed: currentPlaced,
+    ts: Date.now(),
+  });
+  setSaved(saved.slice(0, 20)); // keep max 20
+  closeSaveModal();
+  renderSavedList();
+  showToast(`Saved "${name}"`, 'success');
+}
+
+function loadPattern(i) {
+  const saved = getSaved();
+  const p = saved[i];
+  if (!p) return;
+  currentConfig = p.config;
+  currentPlaced = p.placed;
+
+  // Restore form state
+  document.getElementById('areaW').value = p.config.areaW;
+  document.getElementById('areaH').value = p.config.areaH;
+  document.getElementById('groutGap').value = p.config.grout;
+  const vSlider = document.getElementById('varietySlider');
+  vSlider.value = p.config.variety ?? 50;
+  updateSliderUI(vSlider);
+
+  const list = document.getElementById('slabList');
+  list.innerHTML = '';
+  slabIdCounter = 0;
+  p.config.slabs.forEach(s => addSlabRow(s.w, s.h, s.count === Infinity ? '∞' : s.count));
+
+  drawPattern(p.placed, p.config);
+  updateStats(p.placed, p.config);
+  document.getElementById('btnSave').disabled = false;
+  document.getElementById('btnExport').disabled = false;
+  document.getElementById('toolbarTitle').textContent = `${p.name}`;
+  document.getElementById('badgeArea').textContent = `${p.config.grout}mm grout · variety ${p.config.variety ?? 50}%`;
+
+  // Highlight active
+  document.querySelectorAll('.saved-item').forEach((el, idx) => el.classList.toggle('active', idx === i));
+  showToast(`Loaded "${p.name}"`);
+}
+
+function deletePattern(e, i) {
+  e.stopPropagation();
+  const saved = getSaved();
+  const name = saved[i]?.name;
+  saved.splice(i, 1);
+  setSaved(saved);
+  renderSavedList();
+  showToast(`Deleted "${name}"`);
+}
+
+// ── EXPORT ────────────────────────────────────────────────────
+function exportPNG() {
+  const canvas = document.getElementById('c');
+  const link = document.createElement('a');
+  link.download = 'patio-pattern.png';
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+  showToast('PNG exported');
+}
+
+// ── TOAST ─────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (type ? ' ' + type : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ── UTILS ─────────────────────────────────────────────────────
+function gcd(a, b) { a = Math.round(a); b = Math.round(b); return b === 0 ? a : gcd(b, a % b); }
+function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ── INIT ──────────────────────────────────────────────────────
+initSlabs();
+renderSavedList();
+</script>
+</body>
+</html>
